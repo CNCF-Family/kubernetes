@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: istio-ingressgateway
+    istio: ingressgateway
+    operator.istio.io/component: IngressGateways
+    operator.istio.io/managed: Reconcile
+    operator.istio.io/version: 1.5.0
+    release: istio
+  name: istio-ingressgateway
+  namespace: istio-system
+spec:
+  ports:
+  - name: status-port
+    port: 15020
+    protocol: TCP
+    targetPort: 15020
+  - name: http2
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: 443
+  - name: kiali
+    port: 15029
+    protocol: TCP
+    targetPort: 15029
+  - name: prometheus
+    port: 15030
+    protocol: TCP
+    targetPort: 15030
+  - name: grafana
+    port: 15031
+    protocol: TCP
+    targetPort: 15031
+  - name: tracing
+    port: 15032
+    protocol: TCP
+    targetPort: 15032
+  - name: tcp
+    port: 31400
+    protocol: TCP
+    targetPort: 31400
+  - name: tls
+    port: 15443
+    protocol: TCP
+    targetPort: 15443
+  selector:
+    app: istio-ingressgateway
+    istio: ingressgateway
+  sessionAffinity: None
+  type: LoadBalancer
