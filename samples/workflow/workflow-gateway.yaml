@@ -1,0 +1,29 @@
+#kubectl create -n istio-system secret generic epetbar-credential \
+#--from-file=key=/home/denggang/epetbar-com/epetbar.com.key  \
+#--from-file=cert=/home/denggang/epetbar-com/epetbar.com.pem 
+#secret/epetbar-credential created
+
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: workflow-gateway
+  namespace: gott
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: "epetbar-com"
+    hosts:
+    - "workflow.epetbar.com"
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "workflow.epetbar.com"

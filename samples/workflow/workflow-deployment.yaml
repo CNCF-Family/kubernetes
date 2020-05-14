@@ -1,0 +1,101 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: gott-share-workflow-canary
+    istio: gott-share-workflow
+  name: gott-share-workflow-canary
+  namespace: gott
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: gott-share-workflow-canary
+      istio: gott-share-workflow
+  strategy:
+    rollingUpdate:
+      maxSurge: 26%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: gott-share-workflow-canary
+        istio: gott-share-workflow
+    spec:
+      containers:
+      - env:
+        - name: ENVIRONMENT
+          value: dev
+        - name: IS_K8S
+          value: "1"
+        - name: HOST_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.hostIP
+        - name: SERVICE_ADDR
+          value: workflow.dev.internal.service.com:80
+        - name: CONSUL_PORT
+          value: "8500"
+        - name: SERVER_PORT
+          value: "9002"
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        image: workflow:latest
+        imagePullPolicy: IfNotPresent
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - php
+              - bin/server
+              - stop
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /v1/receive/check
+            port: 9002
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: gott-share-workflow
+        ports:
+        - containerPort: 9002
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /v1/receive/check
+            port: 9002
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 6
+        resources:
+          limits:
+            cpu: 300m
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 50Mi
+        volumeMounts:
+        - mountPath: /wwwlogs
+          name: gott-share-workflow-volume
+      dnsPolicy: ClusterFirst
+      imagePullSecrets:
+      - name: private-image-secret
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - emptyDir: {}
+        name: gott-share-workflow-volume
