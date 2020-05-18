@@ -1,0 +1,22 @@
+apiVersion: "security.istio.io/v1beta1"
+kind: "RequestAuthentication"
+metadata:
+  name: "jwt-example"
+  namespace: foo
+spec:
+  selector:
+    matchLabels:
+      app: httpbin
+  jwtRules:
+  - issuer: "denggang"
+    jwks: |
+      {
+        "keys":[
+          {
+            "e":"AQAB", 
+            "kid":"oYRXZg5ogHWzLWUDscvBASdM5xEKN6rd1JeBsuULdyg",
+            "kty":"RSA",
+            "n":"yipdhfClbVgA8RQj6PNS2mbxTE-UIw6Cm-HY25cYKhMcTkP5dbUPraYvNAD9OY4WTEI76wUSjEYxTBVBo4i6K-aBN9b1tZ0Hs2jw9qcs6KK0HPSotwlPf5URWNTTAgm6OSfT0EY9m3pYnJXoe56OP8G9pgFxftr7Mn_0iPBT2NniZT1vZGYYUMTDC7fyLVGbbMrNZCO1vM_gSrX0O68csjgtxA7eX8wCzgLvFFuUR51hXgg88MyQZHAmc75WTamfOR9N6TRcHcT2H4HNAbORybGy_hQLQEFQP9hgkpW-hlmq63H8CcAh0e3r2bYctf8gxiS0JVqwiWobwGJFQ6ErIQ"
+          }
+        ]        
+      }
