@@ -1,0 +1,20 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/service-weight: ''
+  name: workflow-outaccess
+  namespace: gott
+spec:
+  rules:
+    - host: workflow.api.epet.com
+      http:
+        paths:
+          - backend:
+              serviceName: gott-share-workflow
+              servicePort: 9002
+            path: /
+  tls:
+    - hosts:
+        - workflow.api.epet.com
+      secretName: 8apiepetcom

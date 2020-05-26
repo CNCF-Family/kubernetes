@@ -1,0 +1,17 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: internal-gateway   # 通过注解来区分内网SLB
+    nginx.ingress.kubernetes.io/service-weight: ''
+  name: workflow
+  namespace: gott
+spec:
+  rules:
+    - host: workflow.internal.service.com
+      http:
+        paths:
+          - backend:
+              serviceName: gott-share-workflow
+              servicePort: 9002
+            path: /
