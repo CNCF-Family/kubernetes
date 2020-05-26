@@ -46,6 +46,11 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: status.podIP
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
         image: workflow:latest
         imagePullPolicy: IfNotPresent
         lifecycle:
@@ -89,6 +94,7 @@ spec:
         volumeMounts:
         - mountPath: /wwwlogs
           name: gott-share-workflow-volume
+          subPathExpr: $(POD_NAME)
       dnsPolicy: ClusterFirst
       imagePullSecrets:
       - name: private-image-secret
@@ -97,5 +103,6 @@ spec:
       securityContext: {}
       terminationGracePeriodSeconds: 30
       volumes:
-      - emptyDir: {}
-        name: gott-share-workflow-volume
+      - name: gott-share-workflow-volume
+        persistentVolumeClaim:
+          claimName: share-workflow-pvc

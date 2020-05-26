@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: gott-open-search
+  name: gott-open-search
+  namespace: monitoring
+spec:
+  endpoints:
+  - interval: 30s
+    path: /metric
+    port: http-metrics   # 这里匹配service的ports下的name
+  namespaceSelector:
+    matchNames:
+    - gott
+  selector:
+    matchLabels:
+      app: gott-open-search

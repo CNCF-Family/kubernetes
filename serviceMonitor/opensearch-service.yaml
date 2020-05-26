@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: gott-open-search
+  name: gott-open-search
+  namespace: gott
+spec:
+  ports:
+  - name: http-metrics
+    port: 9031
+    protocol: TCP
+    targetPort: 9031
+  selector:
+    app: gott-open-search
+  type: ClusterIP

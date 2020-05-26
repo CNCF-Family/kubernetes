@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: share-workflow-pvc
+  namespace: gott
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi
+  selector:
+    matchLabels:
+      alicloud-pvname: share-workflow-pv
+  storageClassName: nas
+  volumeMode: Filesystem
+  volumeName: share-workflow-pv
+status:
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: 20Gi
+  phase: Bound
