@@ -1,0 +1,91 @@
+apiVersion: v1
+data:
+  ldap.toml: >
+    [[servers]]
+
+    # Ldap server host (specify multiple hosts space separated)
+
+    host =""
+
+    # Default port is 389 or 636 if use_ssl = true
+
+    port = 389
+
+    # Set to true if ldap server supports TLS
+
+    use_ssl = false
+
+    start_tls = false
+
+    ssl_skip_verify = false
+
+
+    # Search user bind dn
+
+    bind_dn = "cn=admin,dc=epet,dc=com"
+
+    # Search user bind password
+
+    # If the password contains # or ; you have to wrap it with triple quotes. Ex
+    """#password;"""
+
+    bind_password = ''
+
+
+    # User search filter, for example "(cn=%s)" or "(sAMAccountName=%s)" or
+    "(uid=%s)"
+
+    search_filter = "(uid=%s)"
+
+
+    # An array of base dns to search through
+
+    search_base_dns = ["ou=developer,dc=epet,dc=com"]
+
+
+    # Specify names of the ldap attributes your ldap uses
+
+    [servers.attributes]
+
+    name = "givenName"
+
+    surname = "sn"
+
+    username = "cn"
+
+    member_of = "memberOf"
+
+    email =  "email"
+
+
+    # Map ldap groups to grafana org roles
+
+    [[servers.group_mappings]]
+
+    group_dn = "cn=admins,dc=grafana,dc=org"
+
+    org_role = "Admin"
+
+    # To make user an instance admin  (Grafana Admin) uncomment line below
+
+    grafana_admin = true
+
+
+    [[servers.group_mappings]]
+
+    group_dn = "cn=users,dc=grafana,dc=org"
+
+    org_role = "Editor"
+
+
+    [[servers.group_mappings]]
+
+    # If you want to match all (or no ldap groups) then you can use wildcard
+
+    group_dn = "*"
+
+    org_role = "Viewer"
+kind: ConfigMap
+metadata:
+  name: grafana-ldap
+  namespace: monitoring
