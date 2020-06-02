@@ -1,0 +1,11 @@
+FROM php:7.3-alpine
+
+MAINTAINER denggang "dengang610@outlook.com"
+
+ENV PHP_HOME /epetphp
+RUN mkdir $PHP_HOME && sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories 
+WORKDIR $PHP_HOME
+
+COPY ./swoole-tracker /usr/local/lib/php/extensions/swoole-tracker # swoole_install_tracker.sh 运行生成swoole-tracker目录
+COPY build-swoole.sh /$PHP_HOME/
+RUN sh /$PHP_HOME/build-swoole.sh
