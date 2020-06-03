@@ -1,0 +1,9 @@
+FROM registry-vpc.cn-hangzhou.aliyuncs.com/epet/epet-nginx-node:1.0
+
+WORKDIR /epetnode
+
+COPY ./dist/ /epetnode/
+COPY ./nginx.conf /etc/nginx/nginx.conf
+
+
+CMD ["nginx", "-g", "daemon off;"]

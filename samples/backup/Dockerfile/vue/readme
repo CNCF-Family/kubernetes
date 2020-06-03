@@ -1,0 +1,10 @@
+
+// 构建提示
+cnpm install && ./node_modules/.bin/vue-cli-service build   
+
+docker build -t ${IMAGE_URL}/${IMAGE_NAMESPACE}/${JOB_NAME}:${IMAGE_LABEL} --no-cache -f ./Dockerfile .
+
+docker push ${IMAGE_URL}/${IMAGE_NAMESPACE}/${JOB_NAME}:${IMAGE_LABEL}
+
+docker rmi ${IMAGE_URL}/${IMAGE_NAMESPACE}/${JOB_NAME}:${IMAGE_LABEL}
+                      
