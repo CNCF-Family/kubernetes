@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: flexvolume
+  namespace: kube-system
+  labels:
+    k8s-volume: flexvolume
+spec:
+  selector:
+    matchLabels:
+      name: acs-flexvolume
+  template:
+    metadata:
+      labels:
+        name: acs-flexvolume
+    spec:
+      hostPID: true
+      hostNetwork: true
+      tolerations:
+      - operator: Exists
+      priorityClassName: system-node-critical
+      containers:
+      - name: acs-flexvolume
+        image: registry.cn-hangzhou.aliyuncs.com/acs/flexvolume:v1.14.8.88-00a6585-aliyun
+        imagePullPolicy: Always
+        securityContext:
+          privileged: true
+        env:
+        - name: ACS_DISK
+          value: "true"
+        - name: ACS_NAS
+          value: "true"
+        - name: ACS_OSS
+          value: "true"
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - ls /acs/flexvolume
+          failureThreshold: 8
+          initialDelaySeconds: 15
+          periodSeconds: 60
+          successThreshold: 1
+          timeoutSeconds: 15
+        volumeMounts:
+        - name: usrdir
+          mountPath: /host/usr/
+        - name: etcdir
+          mountPath: /host/etc/
+        - name: logdir
+          mountPath: /var/log/alicloud/
+        - mountPath: /var/lib/kubelet
+          mountPropagation: Bidirectional
+          name: kubeletdir
+      volumes:
+      - name: usrdir
+        hostPath:
+          path: /usr/
+      - name: etcdir
+        hostPath:
+          path: /etc/
+      - name: logdir
+        hostPath:
+          path: /var/log/alicloud/
+      - hostPath:
+          path: /var/lib/kubelet
+          type: Directory
+        name: kubeletdir
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 10%
+    type: RollingUpdate

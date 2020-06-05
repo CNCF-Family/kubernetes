@@ -1,0 +1,91 @@
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: alicloud-disk-essd
+provisioner: alicloud/disk
+parameters:
+  type: cloud_essd
+
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: alicloud-disk-efficiency
+provisioner: alicloud/disk
+parameters:
+  type: cloud_efficiency
+
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: alicloud-disk-ssd
+provisioner: alicloud/disk
+parameters:
+  type: cloud_ssd
+
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: alicloud-disk-available
+provisioner: alicloud/disk
+parameters:
+  type: available
+
+---
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: alicloud-disk-controller
+  namespace: kube-system
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: alicloud-disk-controller
+    spec:
+      tolerations:
+      - operator: Exists
+      priorityClassName: system-node-critical
+      nodeSelector:
+         node-role.kubernetes.io/master: &quot;&quot;
+      serviceAccount: admin
+      serviceAccountName: admin
+      containers:
+        - name: alicloud-disk-controller
+          image: registry.cn-hangzhou.aliyuncs.com/acs/alicloud-disk-controller:v1.12.6.21-54d91d6-aliyun
+          volumeMounts:
+            - name: cloud-config
+              mountPath: /etc/kubernetes/
+            - name: logdir
+              mountPath: /var/log/alicloud/
+          resources:
+            limits:
+              cpu: 200m
+              memory: 200Mi
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          livenessProbe:
+            exec:
+              command:
+              - sh
+              - -c
+              - ps -ef | grep /alicloud-disk-controller | grep -v grep
+            failureThreshold: 8
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 15
+      volumes:
+        - name: cloud-config
+          hostPath:
+            path: /etc/kubernetes/
+        - name: logdir
+          hostPath:
+            path: /var/log/alicloud/
