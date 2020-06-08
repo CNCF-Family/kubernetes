@@ -1,0 +1,12 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: prometheus-data-db
+mountOptions:
+- nolock,tcp,noresvport
+- vers=3
+parameters:
+  server: "007ddc75-w9jq.cn-hangzhou.extreme.nas.aliyuncs.com:/share/system/prometheus-db"
+  driver: flexvolume
+provisioner: alicloud/nas
+reclaimPolicy: Retain
