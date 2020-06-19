@@ -4,12 +4,13 @@ ENV PHP_HOME /epetphp
 
 WORKDIR /epetphp
 
-RUN sed -i "s@http://deb.debian.org@http://mirrors.aliyun.com@g" /etc/apt/sources.list && \
+ADD sources.list sources.list
+
+RUN mv /etc/apt/sources.list /etc/apt/sources.list.bak && mv sources.list /etc/apt/ && \
     rm -Rf /var/lib/apt/lists/* && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends \
+    apt-get update -y  && \
+    apt install -y  --no-install-recommends \
         git \
-        libmemcached-dev \
         libz-dev \
         libpq-dev \
         libjpeg-dev \
@@ -24,9 +25,8 @@ RUN sed -i "s@http://deb.debian.org@http://mirrors.aliyun.com@g" /etc/apt/source
         libmagickcore-dev  \
         libmagickwand-dev \
         locales
-
-RUN docker-php-ext-install mcrypt
-RUN docker-php-ext-install mysqli pdo pdo_mysql
+ 
+RUN docker-php-ext-install mcrypt mysqli pdo pdo_mysql
 
 # install the PHP gd library
 RUN docker-php-ext-configure gd \
@@ -227,5 +227,5 @@ COPY ./nginx.conf /etc/nginx/nginx.conf
 # Clean up
 RUN apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*  /epetphp/*  /usr/src/*
 
-#CMD php-fpm && nginx
+CMD php-fpm && nginx
 
