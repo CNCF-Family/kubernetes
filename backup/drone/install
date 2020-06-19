@@ -1,0 +1,44 @@
+gitlab安装
+docker run \
+    --publish 443:443 \
+    --publish 8081:80 \
+    --publish 22:22 \
+    --name gitlab \
+    --volume /u1/gitlab/config:/etc/gitlab \
+    --volume /u1/gitlab/logs:/var/log/gitlab \
+    --volume /u1/gitlab/data:/var/opt/gitlab \
+    docker.io/gitlab/gitlab-ce:latest
+
+
+drone server安装
+docker run \
+  --volume=/var/lib/drone:/data \
+  --env=DRONE_AGENTS_ENABLED=true \
+  --env=DRONE_TLS_AUTOCERT=false \
+  --env=DRONE_GITLAB_SERVER=http://gitlab.xxx.com  \
+  --env=DRONE_USER_CREATE=username:root,admin:true \
+  --env=DRONE_GITLAB_CLIENT_ID=5787ffbd46f409e1010dd78188a1e9881277cf597ce510eedc1a83c1c33e8f7a \
+  --env=DRONE_GITLAB_CLIENT_SECRET=6b8677c5be827ba595cdf127e588d7ba634c664aed06b274858eb514877d3166 \
+  --env=DRONE_RPC_SECRET=0858448fbc9377ab9ee8460f30fa22e6 \
+  --env=DRONE_SERVER_HOST=drone.epetbar.com \
+  --env=DRONE_SERVER_PROTO=http \
+  --env=DRONE_LOGS_DEBUG=true \
+  --publish=8082:80 \
+  --restart=always \
+  --detach=true \
+  --name=drone \
+  drone/drone:1
+
+drone runner 安装
+  docker run -d \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e DRONE_RPC_PROTO=http \
+  -e DRONE_RPC_HOST=drone.xxx.com \
+  -e DRONE_RPC_SECRET=0858448fbc9377ab9ee8460f30fa22e6 \
+  -e DRONE_RUNNER_CAPACITY=6 \
+  -e DRONE_RUNNER_NAME=${HOSTNAME} \
+  -e DRONE_RUNNER_LABELS=runner:epet,ecs:jenkins \
+  -p 3000:3000 \
+  --restart always \
+  --name runner \
+  drone/drone-runner-docker:1
