@@ -1,0 +1,46 @@
+kind: pipeline
+type: docker
+name: front-haiji-api
+
+steps:
+- name: deploy
+  image: appleboy/drone-ssh
+  pull: if-not-exists
+  settings:
+    host: 
+      from_secret: k8s_dev_host
+    port: 
+      from_secret: k8s_ssh_port
+    user: 
+      from_secret: k8s_ssh_username
+    key:
+      from_secret: k8s_ssh_222key
+    script: |
+              kubectl rollout undo  deployment ${DRONE_REPO_NAME} -n gott
+              timeout 120 kubectl rollout status deployment/${DRONE_REPO_NAME} -n gott
+
+
+- name: dingtalk
+  image: guoxudongdocker/drone-dingtalk
+  pull: if-not-exists
+  settings:
+    token: f6aa23a3e3d635704a91ed9a64fe42148ad140e7e0d6bc282d8995641f0b1a1d
+    type: markdown
+    message_color: true
+    message_pic: true
+    sha_link: true
+    tips_title: rollback
+  when:
+    status: [failure, success]
+
+node:
+  runner: epet
+  ecs: jenkins
+
+trigger:
+  branch:
+    - rollback
+  event:
+    - push
+
+
