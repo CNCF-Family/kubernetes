@@ -1,0 +1,18 @@
+FROM registry.cn-hangzhou.aliyuncs.com/kennylee/maven:3.6-jdk-8-alpine
+
+MAINTAINER leiyue "denggang610@outlook.com"
+
+WORKDIR /epetjava
+
+ENV JAVA_ROUTE /epetjava
+
+COPY ./  $JAVA_ROUTE
+
+RUN rm -rf /usr/share/maven/conf/settings.xml && cp $JAVA_ROUTE/settings.xml /usr/share/maven/conf/settings.xml && \
+    rm -rf /root/.m2/settings.xml && cp $JAVA_ROUTE/settings.xml /root/.m2/settings.xml && \
+    rm -rf /home/root/.m2/repository/com/epet/microservices
+
+RUN mvn  -q -DskipTests=true -Pdev -N clean deploy && \
+    mvn  -q -Dmaven.test.skip=true -pl epet-common-* clean deploy && \
+    mvn  -q -Dmaven.test.skip=true -pl epet-api-* clean deploy && \
+    mvn  -q -DskipTests=true -Pdev -pl microservices-* clean package

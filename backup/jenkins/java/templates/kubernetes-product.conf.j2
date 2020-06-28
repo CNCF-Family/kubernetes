@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ service_name }}
+  namespace: {{ namespace }}
+spec:
+  replicas: {{ scale }}
+  selector:
+    matchLabels:
+      app: {{ service_name }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: {{ service_name }}
+    spec:
+      imagePullSecrets:
+      - name: private-image-secret
+      restartPolicy: Always
+      containers:
+      - name: {{ service_name }}
+        image: {{ image_url }}/{{ image_namespace }}/{{ service_name }}:latest
+        imagePullPolicy: Always
+        lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /usr/sbin/crond
+        args:
+        - java
+        - -XX:+UseConcMarkSweepGC 
+        - -XX:CMSInitiatingOccupancyFraction=70 
+        - -XX:+UseCMSCompactAtFullCollection 
+        - -XX:+CMSScavengeBeforeRemark 
+        - -Xms500M 
+        - -Xmx500M 
+        - -Xmn200M 
+        - -XX:SurvivorRatio=8 
+        - -XX:MetaspaceSize=200M 
+        - -XX:+PrintGCDetails 
+        - -XX:+PrintGCDateStamps 
+        - -XX:+PrintHeapAtGC 
+        - -Xloggc:/log/gc.log 
+        - -XX:+HeapDumpOnOutOfMemoryError 
+        - -XX:HeapDumpPath=/log/dump.bin
+        - -XX:-OmitStackTraceInFastThrow
+        - -Djava.security.egd=file:/dev/./urandom
+        - -Dfile.encoding=UTF8 
+        - -Duser.timezone=GMT+08
+        - -jar
+        - microservices-bidata.jar
+        resources:
+          limits:
+            cpu: {{ limit_cpu }}
+            memory: {{ limit_memory }}
+          requests:
+            cpu: {{ request_cpu }}
+            memory: {{ request_memory }}
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /actuator/k8s-liveness
+            port: {{ service_port }}
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        readinessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /actuator/k8s-readiness
+            port: {{ service_port }}
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        ports:
+            - containerPort: {{ service_port }}
+        env:
+        - name: ENVIRONMENT
+          value: {{ env }}
+        - name: SERVICE_ADDR
+          value: 'bidata.internal.service.com'
+        - name: IS_K8S
+          value: '1'
+        - name: HOST_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP         
+        volumeMounts:
+        - name: {{ service_name }}-volume
+          mountPath: /wwwlogs
+      volumes:
+      - name: {{ service_name }}-volume
+        emptyDir: {}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ service_name }}
+  labels:
+    app: {{ service_name }}-service
+  namespace: {{ namespace }}
+spec:
+  ports:
+    - port: {{ service_port }}
+      targetPort: {{ service_port }}
+  selector:
+    app: {{ service_name }}

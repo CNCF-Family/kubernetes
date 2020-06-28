@@ -1,0 +1,212 @@
+#!groovy
+pipeline {
+  agent any
+
+  parameters {
+    // 端口
+    string (name: 'PORT', defaultValue: '9017', description: '')
+
+    string (name: 'LIMIT_MEMORY', defaultValue: '1024Mi', description: '内存限制')
+    string (name: 'REQUEST_MEMORY', defaultValue: '50Mi', description: '调度内存限制')
+
+    string (name: 'LIMIT_CPU', defaultValue: '600m', description: 'CPU限制')
+    string (name: 'REQUEST_CPU', defaultValue: '5m', description: '调度CPU限制')
+
+    choice(
+      choices: 'registry-vpc.cn-hangzhou.aliyuncs.com',
+      description: '远程镜像地址',
+      name: 'IMAGE_URL'
+    )
+    choice(
+      choices: 'epet',
+      description: '镜像命名空间',
+      name: 'IMAGE_NAMESPACE'
+    )
+    choice(
+      choices: 'gott',
+      description: 'kubernetes命名空间',
+      name: 'NAMESPACE'
+    )
+    choice(
+      choices: '1\n2\n3\n4',
+      description: '部署服务节点数量',
+      name: 'DEPLOY_NUM'
+    )
+    choice(
+      choices: 'dev',
+      description: '部署环境',
+      name: 'DEPLOY_ENV'
+    )
+  }
+
+  environment {
+    CONTAINER_PWD = credentials('epet-docker-container')
+    JOB_NAME = sh(script: "echo ${env.JOB_NAME} | awk -F/ '{print \$2}'", returnStdout: true).trim()
+    DATE_TIME = sh(script: "(date +%Y-%m-%d_%H-%M-%S) ", returnStdout: true).trim()
+    IMAGE_LABEL = sh(script: "(date +%Y-%m-%d_%H-%M-%S) ", returnStdout: true).trim()
+    ACCESS_TOKEN = 'f0b0cb9f3cd79c6336ee047ab8aa268d3c3ccdd7c0f8cccd00fdaf9942312'
+    JENKINS_URL = 'http://jenkins.epetbar.com';
+    IMAGE_FILE = "/www/images/${JOB_NAME}"
+  }
+
+
+
+  stages {
+      stage('Message') {
+
+          steps {
+            script {
+              echo "----------------debug message--------------------"
+              echo "workspace:${env.WORKSPACE}"
+              echo "service_name:${JOB_NAME}"
+              echo "git_url:${env.GIT_URL}"
+              echo "IMAGE_LABEL:${IMAGE_LABEL}"
+            }
+          }
+
+          post {
+            always {
+                dingTalk accessToken: "https://oapi.dingtalk.com/robot/send?access_token=${ACCESS_TOKEN}", jenkinsUrl: "${JENKINS_URL}",
+                message: "\n服务开始构建", imageUrl:"http://static.epetbar.com/loading.ico"
+            }
+          }
+      }
+
+      stage("Checkout") {
+          steps {
+            echo "----------------Checkout--------------------"
+            dir("${env.WORKSPACE}/project") {
+              checkout([$class: 'GitSCM',
+                  branches: [[name: "dev"]],
+                  doGenerateSubmoduleConfigurations: false,
+                  extensions: [[$class: 'CleanCheckout']],
+                  submoduleCfg: [],
+                  userRemoteConfigs: [[credentialsId: '801fd731-27cb-4102-bfda-c477a4899ad7', url: "${env.GIT_URL}"]]
+              ])
+            }
+          }
+      }
+
+
+
+      stage ("Build") {
+        steps {
+           echo "----------------Build--------------------"
+           script {
+               dir("${env.WORKSPACE}/project") {
+                  state=sh(script: "docker login --username=hi30393721@aliyun.com ${IMAGE_URL} --password=${CONTAINER_PWD}", returnStatus: true)
+                  echo "result: ${state}"
+
+                      sh """
+                        docker build -t ${JOB_NAME}:${IMAGE_LABEL} --no-cache -f ./Dockerfile-build .
+
+                        docker run --rm --entrypoint cat ${JOB_NAME}:${IMAGE_LABEL}  /epetjava/microservices-bidata/target/microservices-bidata.jar > ./microservices-bidata.jar
+
+                        docker build -t ${IMAGE_URL}/${IMAGE_NAMESPACE}/${JOB_NAME}:${IMAGE_LABEL} --no-cache -f ./Dockerfile-run .
+
+                        docker push ${IMAGE_URL}/${IMAGE_NAMESPACE}/${JOB_NAME}:${IMAGE_LABEL}
+
+                        docker tag ${IMAGE_URL}/${IMAGE_NAMESPACE}/${JOB_NAME}:${IMAGE_LABEL} ${IMAGE_URL}/${IMAGE_NAMESPACE}/${JOB_NAME}:latest
+
+                        docker push ${IMAGE_URL}/${IMAGE_NAMESPACE}/${JOB_NAME}:latest
+
+                        docker rmi ${JOB_NAME}:${IMAGE_LABEL}
+
+                        docker rmi ${IMAGE_URL}/${IMAGE_NAMESPACE}/${JOB_NAME}:${IMAGE_LABEL}
+
+                        docker rmi ${IMAGE_URL}/${IMAGE_NAMESPACE}/${JOB_NAME}:latest
+
+                        rm -rf ./microservices-bidata.jar
+
+                      """
+               }
+           }
+        }
+        post {
+            success {
+                dingTalk accessToken: "https://oapi.dingtalk.com/robot/send?access_token=${ACCESS_TOKEN}", jenkinsUrl: "${JENKINS_URL}",
+                message: "\n服务构建成功", imageUrl: 'http://static.epetbar.com/success.ico'
+                echo "congratulation! 服务构建成功"
+
+                script {
+                  echo "echo ${IMAGE_FILE}"
+                  if (!fileExists(IMAGE_FILE) == true) {
+                     sh "mkdir -p ${IMAGE_FILE} && echo ${IMAGE_LABEL} > ${IMAGE_FILE}/image.log"
+                  }
+                  line = sh(script: "awk 'END{print NR}' ${IMAGE_FILE}/image.log", returnStdout: true).trim()
+                  echo "line:${line}";
+                  if (Integer.parseInt("${line}") >= 6) {
+                     sh "sed -i '1i ${IMAGE_LABEL}' ${IMAGE_FILE}/image.log"
+                     sh "sed -i '\$d' ${IMAGE_FILE}/image.log"
+                  } else {
+                     sh "sed -i '1i ${IMAGE_LABEL}' ${IMAGE_FILE}/image.log"
+                  }
+                }
+            }
+            failure {
+                dingTalk accessToken: "https://oapi.dingtalk.com/robot/send?access_token=${ACCESS_TOKEN}", jenkinsUrl: "${JENKINS_URL}",
+                message: "\nservice build faild, click to see why", imageUrl: 'http://static.epetbar.com/error.ico'
+            }
+            aborted {
+                dingTalk accessToken: "https://oapi.dingtalk.com/robot/send?access_token=${ACCESS_TOKEN}", jenkinsUrl: "${JENKINS_URL}",
+                message: "\nservice build faild, The service has been manually disabled", imageUrl: 'http://static.epetbar.com/error.ico'
+            }
+            unstable {
+                dingTalk accessToken: "https://oapi.dingtalk.com/robot/send?access_token=${ACCESS_TOKEN}", jenkinsUrl: "${JENKINS_URL}",
+                message: "\nservice build faild, click to see why", imageUrl: 'http://static.epetbar.com/error.ico'
+            }
+        }
+     }
+
+      stage('Deploy') {
+         steps {
+          script {
+            echo "----------------Deploy--------------------"
+            dir("${env.WORKSPACE}") {
+                script {
+                  sh """
+                     ansible-playbook -i env/${DEPLOY_ENV} ./deploy-${DEPLOY_ENV}.yml \
+                     -e service_name=${JOB_NAME} \
+                     -e image_url=${IMAGE_URL} \
+                     -e limit_memory=${LIMIT_MEMORY} \
+                     -e request_memory=${REQUEST_MEMORY} \
+                     -e limit_cpu=${LIMIT_CPU} \
+                     -e request_cpu=${REQUEST_CPU} \
+                     -e namespace=${NAMESPACE} \
+                     -e image_namespace=${IMAGE_NAMESPACE} \
+                     -e tag=${IMAGE_LABEL} \
+                     -e env=${DEPLOY_ENV} \
+                     -e scale=${DEPLOY_NUM} \
+                     -e service_port=${PORT}
+                  """
+                }
+            }
+          }
+        }
+
+        post {
+            success {
+                dingTalk accessToken: "https://oapi.dingtalk.com/robot/send?access_token=${ACCESS_TOKEN}", jenkinsUrl: "${JENKINS_URL}",
+                message: "\n ${DEPLOY_ENV}发布成功", imageUrl:'http://static.epetbar.com/shengli.ico'
+                echo "congratulation! sevice deploy success"
+
+            }
+            failure {
+                dingTalk accessToken: "https://oapi.dingtalk.com/robot/send?access_token=${ACCESS_TOKEN}", jenkinsUrl: "${JENKINS_URL}",
+                message: "\nservice deploy faild, click to see why", imageUrl: 'http://static.epetbar.com/error.ico'
+            }
+            aborted {
+                dingTalk accessToken: "https://oapi.dingtalk.com/robot/send?access_token=${ACCESS_TOKEN}", jenkinsUrl: "${JENKINS_URL}",
+                message: "\nservice deploy faild, The service has been manually disabled", imageUrl: 'http://static.epetbar.com/error.ico'
+            }
+            unstable {
+                dingTalk accessToken: "https://oapi.dingtalk.com/robot/send?access_token=${ACCESS_TOKEN}", jenkinsUrl: "${JENKINS_URL}",
+                message: "\nservice deploy faild, click to see why", imageUrl: 'http://static.epetbar.com/error.ico'
+            }
+        }
+      }
+
+
+
+  }
+}

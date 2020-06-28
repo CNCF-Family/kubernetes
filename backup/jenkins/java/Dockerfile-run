@@ -1,0 +1,14 @@
+
+FROM registry-vpc.cn-hangzhou.aliyuncs.com/epet/epet-jdk1.8:8u212
+
+MAINTAINER leiyue "denggang610@outlook.com"
+
+WORKDIR /epetjava
+
+ENV JAVA_ROUTE /epetjava
+
+RUN echo '02 30 * * * find /wwwlogs/ -name "*.log" -type f -size +3000000k -exec cp /dev/null {} \; >> /var/log/cron.log' >> /etc/crontab \
+ && echo '02 31 * * * find /wwwlogs/ -name "*.log" -mtime +5 -type f -exec rm -rf {} \; >> /var/log/cron.log' >> /etc/crontab \
+ && echo '02 32 * * * echo 'hello' >> /var/log/cron.log' >> /etc/crontab 
+
+COPY ./microservices-bidata.jar $JAVA_ROUTE 
