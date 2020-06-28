@@ -1,9 +1,9 @@
-# 查看postgresql状态
+### 查看postgresql状态
 systemctl status postgresql-9.6
 
-# /var/lib/pgsql/9.6/data/ 是postgresql数据目录
+/var/lib/pgsql/9.6/data/ 是postgresql数据目录
 
-# kong启动
+### kong启动
 /usr/local/bin/kong start -c /etc/kong/kong.conf
 
 
@@ -11,7 +11,7 @@ systemctl status postgresql-9.6
 
 
 ------------------------------------------------------
-# kong
+### kong
 
 安装包下载和官网示列：https://getkong.org/install/centos/
 
