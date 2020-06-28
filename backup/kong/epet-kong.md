@@ -88,15 +88,12 @@ kong-dashboard start --help
 ```
 kong-dashboard start \
   --kong-url http://127.0.0.1:8001 \
-  --basic-auth user1=root root=et^%$#@! --port 80
+  --basic-auth user1=root root=etxxxxxx --port 80
 ```
  
  也有**使用docker启动**的  
  注意因为kong默认限制只能本地访问所以需要修改`/etc/kong/kong.conf`  
  我更推荐docker启动，简单高效没烦恼  
- ```
- admin_listen = 172.16.4.49:8001
- ```
  docker 启动命令如下
  ```
  docker run --rm -p 80:8080 pgbi/kong-dashboard start \
