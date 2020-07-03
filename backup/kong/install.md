@@ -52,7 +52,7 @@ docker run -d --name kong \
         --name konga \
         -e "NODE_ENV=production"  \
         -e "DB_ADAPTER=postgres" \
-        -e "DB_URI=postgresql://kong:kong@172.16.xx.xx:5432/konga" \
+        -e "DB_URI=postgresql://kong:kong@172.16.**.**:5432/konga" \
         -d pantsel/konga
 
 # 安装pgadmin4

@@ -7,7 +7,11 @@ systemctl status postgresql-9.6
 /usr/local/bin/kong start -c /etc/kong/kong.conf
 
 
-
+pg_host = 172.16.5.156             # The PostgreSQL host to connect to.
+pg_port = 5432                  # The port to connect to.
+pg_user = kong                  # The username to authenticate if required.
+pg_password = epetkong2019                 # The password to authenticate if required.
+pg_database = kong 
 
 
 ------------------------------------------------------
