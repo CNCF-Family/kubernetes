@@ -1,0 +1,26 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade "websocket";
+      proxy_set_header Connection "Upgrade";
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "360"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "360"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "360"
+    nginx.ingress.kubernetes.io/send-timeout: "360"
+    nginx.ingress.kubernetes.io/service-weight: ""
+    nginx.org/websocket-services: gutou-im
+  creationTimestamp: "2020-07-10T03:53:18Z"
+  generation: 1
+  name: gutou-img
+  namespace: default
+spec:
+  rules:
+  - host: im.dev.gutou.com
+    http:
+      paths:
+      - backend:
+          serviceName: gutou-im
+          servicePort: 8502
+        path: /
