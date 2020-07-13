@@ -1,0 +1,81 @@
+kind: pipeline
+type: docker
+name: tapinapi-gateway
+
+steps:
+- name: build
+  image: plugins/docker
+  pull: if-not-exists
+  settings:
+    username: 
+      from_secret: epet_docker_username
+    password: 
+      from_secret: epet_docker_password
+    repo: registry-vpc.cn-hangzhou.aliyuncs.com/epetjava/${DRONE_REPO_NAME}
+    registry: registry-vpc.cn-hangzhou.aliyuncs.com
+    tag: ${DRONE_COMMIT_BRANCH:8}-${DRONE_COMMIT_SHA:0:8}
+    dockerfile: ./Dockerfile-${DRONE_COMMIT_BRANCH:8}
+
+- name: synchronization
+  image: appleboy/drone-scp
+  pull: if-not-exists
+  settings:
+    host: 
+      from_secret: k8s_${DRONE_COMMIT_BRANCH:8}_host
+    port: 
+      from_secret: k8s_ssh_port
+    user: 
+      from_secret: k8s_ssh_username
+    key:
+      from_secret: k8s_ssh_222key
+    secure: true
+    target: /www/shell
+    source: ./${DRONE_REPO_NAME}-${DRONE_COMMIT_BRANCH:8}.yaml
+
+- name: deploy
+  image: appleboy/drone-ssh
+  pull: if-not-exists
+  settings:
+    host: 
+      from_secret: k8s_${DRONE_COMMIT_BRANCH:8}_host
+    port: 
+      from_secret: k8s_ssh_port
+    user: 
+      from_secret: k8s_ssh_username
+    key:
+      from_secret: k8s_ssh_222key
+    script: |
+              if kubectl get pod | grep -v "grep" | grep ${DRONE_REPO_NAME}; then
+                kubectl set image deployment/${DRONE_REPO_NAME} ${DRONE_REPO_NAME}=registry-vpc.cn-hangzhou.aliyuncs.com/epetjava/${DRONE_REPO_NAME}:${DRONE_COMMIT_BRANCH:8}-${DRONE_COMMIT_SHA:0:8} --record=true
+              else
+                sed -i 's/imagetag/${DRONE_COMMIT_BRANCH:8}-${DRONE_COMMIT_SHA:0:8}/g' /www/shell/${DRONE_REPO_NAME}-${DRONE_COMMIT_BRANCH:8}.yaml
+                kubectl apply -f /www/shell/${DRONE_REPO_NAME}-${DRONE_COMMIT_BRANCH:8}.yaml --record=true
+              fi
+
+              timeout 300 kubectl rollout status deployment/${DRONE_REPO_NAME} 
+
+
+- name: dingtalk
+  image: guoxudongdocker/drone-dingtalk
+  pull: if-not-exists
+  settings:
+    token: ddddddddddddd
+    type: markdown
+    message_color: true
+    message_pic: true
+    sha_link: true
+    tips_title: dev
+  when:
+    status: [failure, success]
+
+node:
+  runner: epet
+  ecs: jenkins
+
+trigger:
+  branch:
+    - release/*
+  event:
+    - push
+
+

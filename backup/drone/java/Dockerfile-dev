@@ -1,0 +1,25 @@
+FROM registry-vpc.cn-hangzhou.aliyuncs.com/kennylee/maven:3.6-jdk-8-alpine as builder
+
+MAINTAINER leiyue "denggang610@outlook.com"
+
+WORKDIR /epetjava
+
+ENV JAVA_ROUTE /epetjava
+
+COPY ./  $JAVA_ROUTE
+
+RUN rm -rf /usr/share/maven/conf/settings.xml && cp $JAVA_ROUTE/settings.xml /usr/share/maven/conf/settings.xml && \
+    rm -rf /root/.m2/settings.xml && cp $JAVA_ROUTE/settings.xml /root/.m2/settings.xml && \
+    rm -rf /home/root/.m2/repository/com/epet/microservices
+
+RUN mvn  -q -DskipTests=true -Pdev clean package
+
+
+# 运行镜像
+FROM registry-vpc.cn-hangzhou.aliyuncs.com/epet/epet-jdk1.8:0_201
+
+WORKDIR /epetjava
+
+ENV JAVA_ROUTE /epetjava
+
+COPY --from=builder /epetjava/target/tapinapi-gateway.jar $JAVA_ROUTE 
