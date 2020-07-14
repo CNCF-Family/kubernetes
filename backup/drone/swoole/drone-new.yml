@@ -1,6 +1,6 @@
 kind: pipeline
 type: docker
-name: front-haiji-api
+name: gott-stock-v2
 
 steps:
 - name: build
@@ -13,14 +13,15 @@ steps:
       from_secret: epet_docker_password
     repo: registry-vpc.cn-hangzhou.aliyuncs.com/gott/${DRONE_REPO_NAME}
     registry: registry-vpc.cn-hangzhou.aliyuncs.com
-    tag: ${DRONE_COMMIT_BRANCH}-${DRONE_COMMIT_SHA:0:8}
+    tag: ${DRONE_COMMIT_BRANCH:8}-${DRONE_COMMIT_SHA:0:8}
+    dockerfile: ./Dockerfile-${DRONE_COMMIT_BRANCH:8}
 
 - name: synchronization
   image: appleboy/drone-scp
   pull: if-not-exists
   settings:
     host: 
-      from_secret: k8s_dev_host
+      from_secret: k8s_${DRONE_COMMIT_BRANCH:8}_host
     port: 
       from_secret: k8s_ssh_port
     user: 
@@ -29,14 +30,14 @@ steps:
       from_secret: k8s_ssh_222key
     secure: true
     target: /www/shell
-    source: ./${DRONE_REPO_NAME}.yaml
+    source: ./${DRONE_REPO_NAME}-${DRONE_COMMIT_BRANCH:8}.yaml
 
 - name: deploy
   image: appleboy/drone-ssh
   pull: if-not-exists
   settings:
     host: 
-      from_secret: k8s_dev_host
+      from_secret: k8s_${DRONE_COMMIT_BRANCH:8}_host
     port: 
       from_secret: k8s_ssh_port
     user: 
@@ -45,21 +46,20 @@ steps:
       from_secret: k8s_ssh_222key
     script: |
               if kubectl get pod -n gott | grep -v "grep" | grep ${DRONE_REPO_NAME}; then
-                sed -i 's/imagetag/${DRONE_COMMIT_BRANCH}-${DRONE_COMMIT_SHA:0:8}/g' /www/shell/${DRONE_REPO_NAME}.yaml
-                kubectl set image deployment/${DRONE_REPO_NAME} ${DRONE_REPO_NAME}=registry-vpc.cn-hangzhou.aliyuncs.com/gott/${DRONE_REPO_NAME}:${DRONE_COMMIT_BRANCH}-${DRONE_COMMIT_SHA:0:8} -n gott --record=true
+                kubectl set image deployment/${DRONE_REPO_NAME} ${DRONE_REPO_NAME}=registry-vpc.cn-hangzhou.aliyuncs.com/gott/${DRONE_REPO_NAME}:${DRONE_COMMIT_BRANCH:8}-${DRONE_COMMIT_SHA:0:8} -n gott --record=true
               else
-                sed -i 's/imagetag/${DRONE_COMMIT_BRANCH}-${DRONE_COMMIT_SHA:0:8}/g' /www/shell/${DRONE_REPO_NAME}.yaml
-                kubectl apply -f /www/shell/${DRONE_REPO_NAME}.yaml --record=true
+                sed -i 's/imagetag/${DRONE_COMMIT_BRANCH:8}-${DRONE_COMMIT_SHA:0:8}/g' /www/shell/${DRONE_REPO_NAME}-${DRONE_COMMIT_BRANCH:8}.yaml
+                kubectl apply -f /www/shell/${DRONE_REPO_NAME}-${DRONE_COMMIT_BRANCH:8}.yaml --record=true
               fi
 
-              timeout 120 kubectl rollout status deployment/${DRONE_REPO_NAME} -n gott
+              timeout 300 kubectl rollout status deployment/${DRONE_REPO_NAME} -n gott
 
 
 - name: dingtalk
   image: guoxudongdocker/drone-dingtalk
   pull: if-not-exists
   settings:
-    token: f6aa23a3e3d635704a91ed9a64fe42148ad140e7e0d6bc282d8995641f0b1a1d
+    token: 111
     type: markdown
     message_color: true
     message_pic: true
@@ -74,7 +74,7 @@ node:
 
 trigger:
   branch:
-    - dev
+    - release/*
   event:
     - push
 

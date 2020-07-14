@@ -24,7 +24,7 @@ steps:
   image: guoxudongdocker/drone-dingtalk
   pull: if-not-exists
   settings:
-    token: f6aa23a3e3d635704a91ed9a64fe42148ad140e7e0d6bc282d8995641f0b1a1d
+    token: 111
     type: markdown
     message_color: true
     message_pic: true
