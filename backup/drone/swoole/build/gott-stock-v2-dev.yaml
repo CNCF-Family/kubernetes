@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: gott-stock-v2
+    istio: gott-stock-v2
+  name: gott-stock-v2
+  namespace: gott
+spec:
+  selector:
+    matchLabels:
+      app: gott-stock-v2
+      istio: gott-stock-v2
+  strategy:
+    rollingUpdate:
+      maxSurge: 26%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: gott-stock-v2
+        istio: gott-stock-v2
+    spec:
+      containers:
+        - env:
+            - name: ENVIRONMENT
+              value: dev
+            - name: IS_K8S
+              value: '1'
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.hostIP
+            - name: SERVICE_ADDR
+              value: 'stock-v2.dev.internal.service.com:80'
+            - name: CONSUL_PORT
+              value: '8500'
+            - name: SERVER_PORT
+              value: '6613'
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+          image: >-
+            registry-vpc.cn-hangzhou.aliyuncs.com/gott/gott-stock-v2:imagetag
+          imagePullPolicy: IfNotPresent
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - php
+                  - bin/server
+                  - stop
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: 6613
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          name: gott-stock-v2
+          ports:
+            - containerPort: 6613
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: 6613
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 6
+          resources:
+            limits:
+              cpu: 300m
+              memory: 1Gi
+            requests:
+              cpu: 5m
+              memory: 500Mi
+          volumeMounts:
+            - mountPath: /wwwlogs
+              name: gott-stock-v2-volume
+      imagePullSecrets:
+        - name: private-image-secret
+      restartPolicy: Always
+      volumes:
+      - name: gott-stock-v2-volume
+        hostPath:
+          path: /wwwlogs/gott-stock-v2
+          type: DirectoryOrCreate
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: gott-stock-v2-service
+  name: gott-stock-v2
+  namespace: gott
+spec:
+  ports:
+    - port: 6613
+      protocol: TCP
+      targetPort: 6613
+      name: gott-stock-v2-metrics
+  selector:
+    app: gott-stock-v2

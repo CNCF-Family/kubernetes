@@ -1,6 +1,6 @@
 kind: pipeline
 type: docker
-name: gott-stock-v2
+name: test-v2
 
 steps:
 - name: build
@@ -14,7 +14,7 @@ steps:
     repo: registry-vpc.cn-hangzhou.aliyuncs.com/gott/${DRONE_REPO_NAME}
     registry: registry-vpc.cn-hangzhou.aliyuncs.com
     tag: ${DRONE_COMMIT_BRANCH:8}-${DRONE_COMMIT_SHA:0:8}
-    dockerfile: ./Dockerfile-${DRONE_COMMIT_BRANCH:8}
+    dockerfile: ./build/Dockerfile-${DRONE_COMMIT_BRANCH:8}
 
 - name: synchronization
   image: appleboy/drone-scp
@@ -29,8 +29,8 @@ steps:
     key:
       from_secret: k8s_ssh_222key
     secure: true
-    target: /www/shell
-    source: ./${DRONE_REPO_NAME}-${DRONE_COMMIT_BRANCH:8}.yaml
+    target: /www/shell 
+    source: ./build/${DRONE_REPO_NAME}-${DRONE_COMMIT_BRANCH:8}.yaml
 
 - name: deploy
   image: appleboy/drone-ssh
@@ -46,10 +46,11 @@ steps:
       from_secret: k8s_ssh_222key
     script: |
               if kubectl get pod -n gott | grep -v "grep" | grep ${DRONE_REPO_NAME}; then
+                sed -i 's/imagetag/${DRONE_COMMIT_BRANCH:8}-${DRONE_COMMIT_SHA:0:8}/g' /www/shell/build/${DRONE_REPO_NAME}-${DRONE_COMMIT_BRANCH:8}.yaml
                 kubectl set image deployment/${DRONE_REPO_NAME} ${DRONE_REPO_NAME}=registry-vpc.cn-hangzhou.aliyuncs.com/gott/${DRONE_REPO_NAME}:${DRONE_COMMIT_BRANCH:8}-${DRONE_COMMIT_SHA:0:8} -n gott --record=true
               else
-                sed -i 's/imagetag/${DRONE_COMMIT_BRANCH:8}-${DRONE_COMMIT_SHA:0:8}/g' /www/shell/${DRONE_REPO_NAME}-${DRONE_COMMIT_BRANCH:8}.yaml
-                kubectl apply -f /www/shell/${DRONE_REPO_NAME}-${DRONE_COMMIT_BRANCH:8}.yaml --record=true
+                sed -i 's/imagetag/${DRONE_COMMIT_BRANCH:8}-${DRONE_COMMIT_SHA:0:8}/g' /www/shell/build/${DRONE_REPO_NAME}-${DRONE_COMMIT_BRANCH:8}.yaml
+                kubectl apply -f /www/shell/build/${DRONE_REPO_NAME}-${DRONE_COMMIT_BRANCH:8}.yaml --record=true
               fi
 
               timeout 300 kubectl rollout status deployment/${DRONE_REPO_NAME} -n gott
@@ -59,7 +60,7 @@ steps:
   image: guoxudongdocker/drone-dingtalk
   pull: if-not-exists
   settings:
-    token: 111
+    token: f6aa23a3e3d635704a1111111111111111111
     type: markdown
     message_color: true
     message_pic: true

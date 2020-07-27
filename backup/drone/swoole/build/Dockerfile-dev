@@ -1,0 +1,7 @@
+FROM registry.cn-hangzhou.aliyuncs.com
+
+COPY ./ $PHP_HOME
+
+RUN composer update -v --no-dev && rm -rf .git
+
+CMD ["php", "bin/server", "start"]
